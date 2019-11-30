@@ -8,6 +8,7 @@ COIN_CLI='/src/zelcash-cli'
 USERNAME="$(whoami)"
 
 #color codes
+YELLOW='\033[1;33m'
 RED='\033[1;31m'
 SEA="\\033[38;5;49m"
 NC='\033[0m'
