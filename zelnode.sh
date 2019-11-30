@@ -32,7 +32,6 @@ PORT='26125'
 SSHPORT='22'
 COIN_DAEMON='./src/zelcashd'
 COIN_CLI='./src/zelcash-cli'
-COIN_PATH='/usr/local/bin'
 USERNAME="$(whoami)"
 
 #color codes
