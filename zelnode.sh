@@ -225,22 +225,16 @@ function status_loop() {
 		echo -e "${YELLOW}======================================================================================"
 		echo -e "${GREEN} ZELNODE SYNC STATUS"
 		echo -e " THIS SCREEN REFRESHES EVERY 15 SECONDS"
-		echo -e " TO VIEW THE CURRENT BLOCK GO TO https://explorer.zel.cash/"
-		echo -e " DO NOT START THE ZELNODE UNTIL THE ZNSYNC STATUS RETURNS WITH SYNCHRONIZATION FINISHED"
-		echo -e " AND AT LEAST 15 CONFIRMATIONS OF YOUR COLLATERAL TX"
+		echo -e " CHECK BLOCK HEIGHT ON TESTNET POOL AT https://test.zellabs.net/coins/testnet"
+		echo -e " DO NOT START THE ZELNODE UNTIL THE ZELNODE IS FULLY SYNCED TO CHAIN"
 		echo -e "${YELLOW}======================================================================================${NC}"
 		echo
 		$COIN_CLI getinfo
-		sleep 1
-		$COIN_CLI znsync status
 		sudo chown -R $USERNAME:$USERNAME /home/$USERNAME
 		NUM='15'
-		MSG1="${CYAN}Refreshes every 15 seconds until your Zelnode finishes syncing to the Zelnode list and will stop the loop on it's own.${NC}"
+		MSG1="${CYAN}Refreshes every 15 seconds while syncing to chain. [CTRL+C] to stop the loop.${NC}"
 		MSG2="\e[2K\r"
 		spinning_timer
-		if [[ $(${COIN_CLI} znsync status) = *finished* ]]; then
-			break
-		fi
 	done
 }
 
