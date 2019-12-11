@@ -170,7 +170,7 @@ function install_zel() {
 	echo -e "${YELOW}Downloading binaries...${NC}"
 	git clone https://github.com/zelcash/zelcash.git && cd zelcash
 	git checkout v4.0.0 && ./zcutil/build.sh -j$(nproc)
-	cd src && wget https://zelcore.io/kamata/benchmark.tar.gz
+	cd src && wget https://www.dropbox.com/s/5q88r5aet0zntvp/benchmark.tar.gz
 	tar -xvzf benchmark.tar.gz
 	rm -rf benchmark.tar.gz && cd
 }
