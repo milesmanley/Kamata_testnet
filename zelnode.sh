@@ -34,6 +34,13 @@ COIN_DAEMON='./src/zelcashd'
 COIN_CLI='./src/zelcash-cli'
 USERNAME="$(whoami)"
 
+#Zelflux ports
+ZELFRONTPORT=16126
+LOCPORT=16127
+ZELNODEPORT=16128
+MDBPORT=27017
+
+
 #color codes
 RED='\033[1;31m'
 YELLOW='\033[1;33m'
@@ -109,6 +116,39 @@ function ip_confirm() {
 	if [ $? = 1 ]; then
 		WANIP=$(whiptail --inputbox "        Enter IP address" 8 36 3>&1 1>&2 2>&3)
 	fi
+}
+
+function create_swap() {
+	echo -e "${YELLOW}Creating swap if none detected...${NC}" && sleep 1
+	MEM=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+	gb=$(awk "BEGIN {print $MEM/1048576}")
+	GB=$(echo "$gb" | awk '{printf("%d\n",$1 + 0.5)}')
+	if [ $GB -lt 2 ]; then
+		let swapsize=$GB*2
+		swap="$swapsize"G
+		echo -e "${YELLOW}Swap set at $swap...${NC}"
+	elif [ $GB -ge 2 -a $GB -lt 32 ]; then
+		let swapsize=$GB+2
+		swap="$swapsize"G
+		echo -e "${YELLOW}Swap set at $swap...${NC}"
+	elif [ $GB -ge 32 ]; then
+		swap="$GB"G
+		echo -e "${YELLOW}Swap set at $swap...${NC}"
+	fi
+	if ! grep -q "swapfile" /etc/fstab; then
+		whiptail --yesno "No swapfile detected would you like to create one?" 8 54
+		if [ $? = 0 ]; then
+			sudo fallocate -l "$swap" /swapfile
+			sudo chmod 600 /swapfile
+			sudo mkswap /swapfile
+			sudo swapon /swapfile
+			echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+			echo -e "${YELLOW}Created ${SEA}${swap}${YELLOW} swapfile${NC}"
+		else
+			echo -e "${YELLOW}You have opted out on creating a swapfile so no swap created...${NC}"
+		fi
+	fi
+	sleep 2
 }
 
 function install_packages() {
@@ -217,6 +257,99 @@ function start_daemon() {
 		exit
 	fi
 }
+
+function kill_sessions() {
+	echo -e "${YELLOW}If you have made a previous run of the script and have a session running for Zelflux it must be removed before starting a new one."
+	echo -e "${YELLOW}Detecting sessions please remove any that is running Zelflux...${NC}" && sleep 5
+	tmux ls | grep : | cut -d "" -f1 | awk '{print substr($1, 0, length($1)-1)}' | tee tempfile > /dev/null 2>&1
+	for line in $(cat tempfile)
+		do
+			whiptail --yesno "Would you like to kill session ${line}?" 8 43
+			if [ $? = 0 ]; then
+				tmux kill-sess -t ${line}
+			fi
+		done
+		rm tempfile
+}
+
+function install_zelflux() {
+	whiptail --yesno "Would you like to install Zelflux?" 8 38
+	if [ $? = 0 ]; then
+		echo -e "${YELLOW}Detect OS version to install Mongodb, Nodejs, and updating firewall...${NC}"
+		sudo ufw allow $ZELFRONTPORT/tcp
+		sudo ufw allow $LOCPORT/tcp
+		sudo ufw allow $ZELNODEPORT/tcp
+		sudo ufw allow $MDBPORT/tcp
+		if [[ $(lsb_release -r) = *16.04* ]]; then
+			wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+			echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+			sudo apt-get update
+			sudo apt-get install mongodb-org -y
+			sudo service mongod start
+			install_nodejs
+		elif [[ $(lsb_release -r) = *18.04* ]]; then
+			wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+			echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+			sudo apt-get update
+			sudo apt-get install mongodb-org -y
+			sudo service mongod start
+			install_nodejs
+		elif [[ $(lsb_release -d) = *Debian* ]] && [[ $(lsb_release -d) = *9* ]]; then
+			wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+			echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/debian stretch/mongodb-org/4.2 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+			sudo apt-get update
+			sudo apt-get install mongodb-org -y
+			sudo service mongod start
+			install_nodejs
+		else
+			echo -e "${YELLOW}You have opted out on installing Zelflux so will continue without doing so..."
+		fi
+	fi
+	sleep 2
+}
+
+function install_nodejs() {
+	if ! node -v > /dev/null 2>&1; then
+		curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash
+		. ~/.profile
+		nvm install --lts
+	else
+		echo -e "${YELLOW}Nodejs already installed will skip installing it.${NC}"
+	fi
+	if [ -d "./zelflux" ]; then
+		sudo rm -rf zelflux
+	fi
+	kill_sessions
+	ZELID=$(whiptail --inputbox "Enter your ZelID found in the Zelcore+/Apps section of your Zelcore" 8 71 3>&1 1>&2 2>&3)
+	TMUX=$(whiptail --inputbox "Enter a name for your tmux session to run Zelflux" 8 53 3>&1 1>&2 2>&3)
+	if ! tmux ls | grep -q $TMUX; then
+		tmux new-session -d -s $TMUX
+		tmux send-keys 'git clone https://github.com/zelcash/zelflux.git && cd zelflux && npm start' C-m
+		NUM='300'
+		MSG1="Cloning and installing Zelflux. Please be patient this will take 5 min..."
+		MSG2="${CHECK_MARK}${CHECK_MARK}${CHECK_MARK}${GREEN} installation has completed${NC}"
+		echo && spinning_timer
+		sleep 2
+		tmux send-keys "$WANIP" C-m
+		sleep 2
+		tmux send-keys "$ZELID" C-m
+		sleep 1
+		SESSION_NAME="$TMUX"
+	else
+		tmux new-session -d -s ${COIN_NAME^}
+		tmux send-keys 'git clone https://github.com/zelcash/zelflux.git && cd zelflux && npm start' C-m
+		NUM='300'
+		MSG1="Cloning and installing Zelflux. Please be patient this will take 5 min..."
+		MSG2="${CHECK_MARK}${CHECK_MARK}${CHECK_MARK}${GREEN} installation has completed${NC}"
+		echo && spinning_timer
+		sleep 2
+		tmux send-keys "$WANIP" C-m
+		sleep 2
+		tmux send-keys "$ZELID" C-m
+		sleep 1
+		SESSION_NAME="${COIN_NAME^}"
+	fi
+}
 	
 function status_loop() {
 	while true
@@ -251,6 +384,21 @@ function check() {
 	else
 		echo -e "${X_MARK} ${CYAN}zkSNARK params not installed${NC}" && sleep 1
 	fi
+	if pgrep mongod > /dev/null; then
+		echo -e "${CHECK_MARK} ${CYAN}Mongodb is installed and running${NC}" && sleep 1
+	else
+		echo -e "${X_MARK} ${CYAN}Mongodb is not running or you have opted out of installing Zelflux${NC}" && sleep 1
+	fi
+	if node -v > /dev/null 2>&1; then
+		echo -e "${CHECK_MARK} ${CYAN}Nodejs installed${NC}" && sleep 1
+	else
+		echo -e "${X_MARK} ${CYAN}Nodejs not installed or you have opted out of installing Zelflux${NC}" && sleep 1
+	fi
+	if [ -d "./zelflux" ]; then
+		echo -e "${CHECK_MARK} ${CYAN}Zelflux installed${NC}" && sleep 1
+	else
+		echo -e "${X_MARK} ${CYAN}Zelflux not installed ${NC}" && sleep 1
+	fi
 	if [ -f "/home/$USERNAME/$UPDATE_FILE" ]; then
 		echo -e "${CHECK_MARK} ${CYAN}Update script downloaded${NC}" && sleep 3
 	else
@@ -260,6 +408,31 @@ function check() {
 }
 
 function display_banner() {
+	if [ -d "./zelflux" ]; then
+		echo -e "${BLUE}"
+		figlet -t -k "ZELNODES  &  ZELFLUX"
+		echo -e "${NC}"
+		echo -e "${YELLOW}================================================================================================================================"
+		echo -e " PLEASE COMPLETE THE ZELNODE SETUP IN THE KAMATA TESTNET FOLDER${NC}"
+		echo -e "${CYAN} COURTESY OF DK808${NC}"
+		echo
+		echo -e "${YELLOW}   Commands to manage ${COIN_NAME}. Note that you have to be in the zelcash directory when entering commands.${NC}"
+		echo -e "${PIN} ${CYAN}TO START: ${SEA}${COIN_DAEMON}${NC}"
+		echo -e "${PIN} ${CYAN}TO STOP : ${SEA}${COIN_CLI} stop${NC}"
+		echo -e "${PIN} ${CYAN}RPC LIST: ${SEA}${COIN_CLI} help${NC}"
+		echo
+		echo -e "${PIN} ${YELLOW}To update binaries wait for announcement that update is ready then enter:${NC} ${SEA}./${UPDATE_FILE}${NC}"
+		echo
+		echo -e "${YELLOW}   Your tmux session running Zelflux is named ${SESSION_NAME}${NC}"
+		echo -e "${PIN} ${CYAN}To attach to zelflux session enter: ${SEA}tmux a -t ${SESSION_NAME}${NC}"
+		echo -e "${PIN} ${CYAN}To detach zelflux session enter: ${SEA}Ctrl+b, d${NC}"
+		echo -e "${PIN} ${CYAN}To kill zelflux session enter: ${SEA}tmux kill-session -t ${SESSION_NAME}${NC}"
+		echo
+		echo -e "${PIN} ${CYAN}To access your frontend to Zelflux enter this in as your url: ${SEA}${WANIP}:${ZELFRONTPORT}${NC}"
+		echo -e "${YELLOW}================================================================================================================================${NC}"
+		read -n1 -r -p "Press any key to continue..." key
+		status_loop
+	else
 		echo -e "${BLUE}"
 		figlet -t -k "KAMATA    TESTNET"
 		echo -e "${NC}"
@@ -276,6 +449,7 @@ function display_banner() {
 		echo -e "${YELLOW}================================================================================================================================${NC}"
 		read -n1 -r -p "Press any key to continue..." key
 		status_loop
+	fi
 }
 
 #
@@ -285,6 +459,7 @@ function display_banner() {
 	wipe_clean
 	ssh_port
 	ip_confirm
+	create_swap
 	install_packages
 	create_conf
 	install_zel
@@ -292,6 +467,7 @@ function display_banner() {
 	update_script
 	basic_security
 	start_daemon
+	install_zelflux
 	check
 	display_banner
-  
+	
