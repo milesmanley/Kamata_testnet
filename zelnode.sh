@@ -251,7 +251,7 @@ function start_daemon() {
 	echo && spinning_timer
 	echo
 	$COIN_CLI getinfo
-	sleep 5
+	sleep 5 && cd
     else
 	echo -e "${RED}Something is not right the daemon did not start. Will exit out so try and run the script again.${NC}"
 	exit
@@ -392,7 +392,7 @@ function check() {
     else
 	echo -e "${X_MARK} ${CYAN}Nodejs did not install${NC}" && sleep 1
     fi
-    if [ -d "./zelflux" ]; then
+    if [ -d "/home/$USERNAME/zelflux" ]; then
 	echo -e "${CHECK_MARK} ${CYAN}Zelflux installed${NC}" && sleep 1
     else
 	echo -e "${X_MARK} ${CYAN}Zelflux did not install${NC}" && sleep 1
