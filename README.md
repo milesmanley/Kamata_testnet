@@ -1,13 +1,15 @@
 # Kamata Testnet
-Script needs to be ran under a non-root user with sudo privileges. It will build from source and should work on Ubuntu 16/18 and Debian 9. Use at own risk.
+Script needs to be ran under a non-root user with sudo privileges. It will build from source and should work on Ubuntu 16/18 and Debian 9/10. Use at own risk.
 
 ## Docker Instructions
-After creating user enter following commands
+After creating a non-root user to run your zel daemon, run the following commands as the root user.
+
 1.  snap install docker
 2.  groupadd docker
-3.  usermod -aG docker USER   *Replace USER with the username you just created.*
+3.  usermod -aG docker USER   *#(Replace USER with the username you just created)*
 4.  reboot
-Log back in as the user and run the script posted below
+
+Once the server has finished restarting, log back in as the user that you created above and then run the script posted below
 
 User input will be prompted so have in hand the following.
 1.  zelnodeprivkey
