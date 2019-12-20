@@ -4,10 +4,11 @@ Script needs to be ran under a non-root user with sudo privileges. It will build
 ## Docker Instructions
 After creating a non-root user to run your zel daemon, run the following commands as the root user.
 
-1.  snap install docker
-2.  groupadd docker
-3.  usermod -aG docker USER   *#(Replace USER with the username you just created)*
-4.  reboot
+1.  apt update && apt install snapd -y
+2.  snap install docker
+3.  groupadd docker
+4.  usermod -aG docker USER   *#(Replace USER with the username you just created)*
+5.  reboot
 
 Once the server has finished restarting, log back in as the user that you created above and then run the script posted below
 
