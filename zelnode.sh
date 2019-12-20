@@ -435,18 +435,17 @@ function display_banner() {
 #end of functions
 
 #run functions
-	wipe_clean
-	ssh_port
-	ip_confirm
-	create_swap
-	install_packages
-	create_conf
-	install_zel
-	zk_params
-	update_script
-	basic_security
-	start_daemon
-	install_zelflux
-	check
-	display_banner
-	
+    wipe_clean
+    ssh_port
+    ip_confirm
+    create_swap
+    install_packages
+    create_conf
+    install_zel
+    zk_params
+    update_script
+    basic_security
+    start_daemon
+    install_zelflux
+    check
+    display_banner
