@@ -357,7 +357,7 @@ function status_loop() {
 	echo -e " DO NOT START THE ZELNODE UNTIL THE ZELNODE IS FULLY SYNCED TO CHAIN"
 	echo -e "${YELLOW}======================================================================================${NC}"
 	echo
-	$COIN_CLI getinfo
+	./${COIN_NAME}/src/${COIN_NAME}-cli getinfo
 	sudo chown -R $USERNAME:$USERNAME /home/$USERNAME
 	NUM='15'
 	MSG1="${CYAN}Refreshes every 15 seconds while syncing to chain. Refresh loop will stop automatically once it's fully synced.${NC}"
