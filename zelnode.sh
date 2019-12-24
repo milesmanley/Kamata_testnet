@@ -369,6 +369,21 @@ function status_loop() {
     done
 }
 
+function restart_script() {
+    echo -e "${YELLOW}Creating a script to restart Zelflux in case server reboots...${NC}"
+    echo "#!/bin/bash" > ~/restart_zelflux.sh
+    echo "sudo service mongod start && sleep 5" >> ~/restart_zelflux.sh
+    echo "tmux new-session -d -s ${SESSION_NAME}" >> ~/restart_zelflux.sh
+    echo "tmux send-keys -t ${SESSION_NAME} \"cd zelflux && npm start\" C-m" >> ~/restart_zelflux.sh
+    sudo chmod +x restart_zelflux.sh
+    crontab -l | grep -v "pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh" | crontab -
+    sleep 1
+    crontab -l > tempcron
+    echo "* * * * * pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh >/dev/null 2>&1" >> tempcron
+    crontab tempcron
+    rm tempcron
+}
+
 function check() {
     echo && echo && echo
     echo -e "${YELLOW}Running through some checks...${NC}"
@@ -401,6 +416,11 @@ function check() {
 	echo -e "${CHECK_MARK} ${CYAN}Update script downloaded${NC}" && sleep 3
     else
 	echo -e "${X_MARK} ${CYAN}Update script not installed${NC}" && sleep 3
+    fi
+    if [ -f "/home/$USERNAME/restart_zelflux.sh" ]; then
+	echo -e "${CHECK_MARK} ${CYAN}Restart script for Zelflux installed${NC}" && sleep 3
+    else
+	echo -e "${X_MARK} ${CYAN}Restart script not installed${NC}" && sleep 3
     fi
     echo && echo && echo
 }
@@ -447,5 +467,6 @@ function display_banner() {
     basic_security
     start_daemon
     install_zelflux
+    restart_script
     check
     display_banner
