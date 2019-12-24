@@ -259,17 +259,17 @@ function start_daemon() {
 }
 
 function kill_sessions() {
-	echo -e "${YELLOW}If you have made a previous run of the script and have a session running for Zelflux it must be removed before starting a new one."
-	echo -e "${YELLOW}Detecting sessions please remove any that is running Zelflux...${NC}" && sleep 5
-	tmux ls | grep : | cut -d "" -f1 | awk '{print substr($1, 0, length($1)-1)}' | tee tempfile > /dev/null 2>&1
-	for line in $(cat tempfile)
-		do
-			whiptail --yesno "Would you like to kill session ${line}?" 8 43
-			if [ $? = 0 ]; then
-				tmux kill-sess -t ${line}
-			fi
-		done
-		rm tempfile
+    echo -e "${YELLOW}If you have made a previous run of the script and have a session running for Zelflux it must be removed before starting a new one."
+    echo -e "${YELLOW}Detecting sessions please remove any that is running Zelflux...${NC}" && sleep 5
+    tmux ls | grep : | cut -d "" -f1 | awk '{print substr($1, 0, length($1)-1)}' | tee tempfile > /dev/null 2>&1
+    for line in $(cat tempfile)
+    do
+        whiptail --yesno "Would you like to kill session ${line}?" 8 43
+	if [ $? = 0 ]; then
+	    tmux kill-sess -t ${line}
+	fi
+    done
+    rm tempfile
 }
 
 function install_zelflux() {
@@ -371,15 +371,16 @@ function status_loop() {
 
 function restart_script() {
     echo -e "${YELLOW}Creating a script to restart Zelflux in case server reboots...${NC}"
-    echo "#!/bin/bash" > ~/restart_zelflux.bash
-    echo "sudo service mongod start && sleep 5" >> ~/restart_zelflux.bash
-    echo "tmux new-session -d -s ${SESSION_NAME}" >> ~/restart_zelflux.bash
-    echo "tmux send-keys -t ${SESSION_NAME} \"cd zelflux && npm start\" C-m" >> ~/restart_zelflux.bash
-    sudo chmod +x restart_zelflux.bash
-    crontab -l | grep -v "pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.bash" | crontab -
+    echo "#!/bin/bash" > ~/restart_zelflux.sh
+    echo "sudo service mongod start && sleep 5" >> ~/restart_zelflux.sh
+    echo "tmux new-session -d -s ${SESSION_NAME}" >> ~/restart_zelflux.sh
+    echo "tmux send-keys -t ${SESSION_NAME} \"cd zelflux && npm start\" C-m" >> ~/restart_zelflux.sh
+    sudo chmod +x restart_zelflux.sh
+    crontab -l | grep -v "pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh" | crontab -
     sleep 1
     crontab -l > tempcron
-    echo "* * * * * pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.bash >/dev/null 2>&1" >> tempcron
+    echo "SHELL=/bin/bash" >> tempcron
+    echo "* * * * * pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh >/dev/null 2>&1" >> tempcron
     crontab tempcron
     rm tempcron
 }
