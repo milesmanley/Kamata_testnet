@@ -220,12 +220,6 @@ function zk_params() {
     sudo chmod +x ~/$COIN_NAME/zcutil/fetch-params.sh && ~/$COIN_NAME/zcutil/fetch-params.sh
 }
 
-function update_script() {
-    echo -e "${YELLOW}Downloading update script for easy updating...${NC}"
-    wget $UPDATE_SCRIPT
-    sudo chmod +x $UPDATE_FILE
-}
-
 function basic_security() {
     echo -e "${YELLOW}Configuring firewall and enabling fail2ban...${NC}"
     sudo ufw allow $SSHPORT/tcp
@@ -369,6 +363,31 @@ function status_loop() {
     done
 }
 
+function update_script() {
+    echo -e "${YELLOW}Creating a script to update binaries for future updates...${NC}"
+    echo "#!/bin/bash" > ~/update.sh
+    echo "COIN_NAME='zelcash'" >> ~/update.sh
+    echo "COIN_DAEMON='./src/zelcashd'" >> ~/update.sh
+    echo "COIN_CLI='/src/zelcash-cli'" >> ~/update.sh
+    echo "USERNAME=\"\$(whoami)\"" >> ~/update.sh
+    echo "crontab -l | grep -v \"SHELL=/bin/bash\" | crontab -" >> ~/update.sh 
+    echo "crontab -l | grep -v \"pgrep mongod > /dev/null || /home/\$USERNAME/restart_zelflux.sh\" | crontab -" >> ~/update.sh
+    echo "crontab -l | grep -v \"pgrep zelcashd > /dev/null || cd ~/zelcash && ./src/zelcashd\" | crontab -" >> ~/update.sh
+    echo "sleep 1" >> ~/update.sh
+    echo "~/\$COIN_NAME/\$COIN_CLI stop > /dev/null 2>&1 && sleep 2" >> ~/update.sh
+    echo "sudo killall \${COIN_NAME}d > /dev/null 2>&1" >> ~/update.sh
+    echo "cd ~/\$COIN_NAME" >> ~/update.sh
+    echo "git pull && make" >> ~/update.sh
+    echo "\$COIN_DAEMON > /dev/null 2>&1" >> ~/update.sh
+    echo "crontab -l > tempcron" >> ~/update.sh
+    echo "echo \"SHELL=/bin/bash\" >> tempcron" >> ~/update.sh
+    echo "echo \"* * * * * pgrep mongod > /dev/null || /home/\$USERNAME/restart_zelflux.sh >/dev/null 2>&1\" >> tempcron" >> ~/update.sh
+    echo "echo \"* * * * * pgrep zelcashd > /dev/null || cd ~/zelcash && ./src/zelcashd >/dev/null 2>&1\" >> tempcron" >> ~/update.sh
+    echo "crontab tempcron" >> ~/update.sh
+    echo "rm tempcron" >> ~/update.sh
+    sudo chmod +x update.sh
+}
+
 function restart_script() {
     echo -e "${YELLOW}Creating a script to restart Zelflux in case server reboots...${NC}"
     echo "#!/bin/bash" > ~/restart_zelflux.sh
@@ -376,11 +395,14 @@ function restart_script() {
     echo "tmux new-session -d -s ${SESSION_NAME}" >> ~/restart_zelflux.sh
     echo "tmux send-keys -t ${SESSION_NAME} \"cd zelflux && npm start\" C-m" >> ~/restart_zelflux.sh
     sudo chmod +x restart_zelflux.sh
+    crontab -l | grep -v "SHELL=/bin/bash" | crontab -
     crontab -l | grep -v "pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh" | crontab -
+    crontab -l | grep -v "pgrep zelcashd > /dev/null || cd ~/zelcash && ./src/zelcashd" | crontab -
     sleep 1
     crontab -l > tempcron
     echo "SHELL=/bin/bash" >> tempcron
     echo "* * * * * pgrep mongod > /dev/null || /home/$USERNAME/restart_zelflux.sh >/dev/null 2>&1" >> tempcron
+    echo "* * * * * pgrep zelcashd > /dev/null || cd ~/zelcash && ./src/zelcashd >/dev/null 2>&1" >> tempcron 
     crontab tempcron
     rm tempcron
 }
@@ -464,10 +486,10 @@ function display_banner() {
     create_conf
     install_zel
     zk_params
-    update_script
     basic_security
     start_daemon
     install_zelflux
     restart_script
+    update_script
     check
     display_banner
