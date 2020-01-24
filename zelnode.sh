@@ -357,7 +357,7 @@ function status_loop() {
 	MSG1="${CYAN}Refreshes every 15 seconds while syncing to chain. Refresh loop will stop automatically once it's fully synced.${NC}"
 	MSG2="\e[2K\r"
 	spinning_timer
-	if [[ $(wget -nv -qO - https://zel-testnet.fomominers.com/zel/info | jq '.blocks') ]] && [[ $(./zelcash/src/zelcash-cli getinfo | jq '.blocks') ]]; then
+	if [[ $(wget -nv -qO - https://testnet.zelcash.online/api/status?q=getInfo | jq '.info.blocks') ]] && [[ $(./zelcash/src/zelcash-cli getinfo | jq '.blocks') ]]; then
             break
 	fi
     done
